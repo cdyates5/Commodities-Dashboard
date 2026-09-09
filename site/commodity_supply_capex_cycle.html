@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Commodity Capital Cycle — Supply Model</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --ink:#16181D; --paper:#FBFAF6; --card:#FFFFFF; --line:#E7E3D8; --grid:#EDEAE1;
+  --red:#C8102E; --black:#16181D; --supply:#B07B22; --teal:#1F5F7A;
+  --muted:#74726B; --soft:#9A978E; --good:#1F7A4D; --bad:#B23A2E; --neutral:#7A7A74;
+  --shadow:0 1px 2px rgba(20,20,15,.05),0 8px 24px rgba(20,20,15,.04);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1}
+.wrap{max-width:1200px;margin:0 auto;padding:30px 26px 70px}
+.mast{border-bottom:2px solid var(--ink);padding-bottom:16px;margin-bottom:8px}
+.eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--red);font-weight:700}
+h1{font-family:Georgia,"Times New Roman",serif;font-weight:600;font-size:33px;line-height:1.08;margin:8px 0 6px;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:14.5px;max-width:800px;line-height:1.5}
+.meta-line{display:flex;flex-wrap:wrap;gap:18px;margin-top:12px;font-size:12px;color:var(--soft)}
+.meta-line b{color:var(--ink);font-weight:600}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:middle}
+.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:22px 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 15px;box-shadow:var(--shadow)}
+.card .lab{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.card .val{font-size:26px;font-weight:680;margin-top:7px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.card .tag{display:inline-block;margin-top:8px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px}
+.card .note{font-size:11px;color:var(--soft);margin-top:7px;line-height:1.35}
+.tag.bull{background:#E8F3EC;color:var(--good)} .tag.bear{background:#F6E9E7;color:var(--bad)}
+.tag.neut{background:#F0EFEA;color:var(--neutral)} .tag.scarce{background:#F6EEE0;color:#9A6A14}
+.tag.abund{background:#E9EEF2;color:#27617E}
+.grid2{display:grid;grid-template-columns:1fr;gap:18px;margin-top:18px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:18px 18px 16px}
+.panel h2{font-family:Georgia,serif;font-weight:600;font-size:18px;margin:0 0 2px;letter-spacing:-.01em}
+.panel .desc{font-size:12.5px;color:var(--muted);margin:0 0 12px;line-height:1.45;max-width:840px}
+.row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.lk{width:16px;height:3px;border-radius:2px;display:inline-block}
+.lk.dash{background:repeating-linear-gradient(90deg,var(--red) 0 5px,transparent 5px 9px)}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
+.btns button{font:inherit;font-size:11.5px;font-weight:600;color:var(--muted);background:#F4F2EC;
+  border:1px solid var(--line);padding:5px 11px;border-radius:7px;cursor:pointer;transition:.12s}
+.btns button.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.chartbox{position:relative;height:440px;margin-top:6px}
+.chartbox.sm{height:290px}
+.toolbar{display:flex;gap:22px;align-items:flex-end;flex-wrap:wrap;margin-top:6px}
+.ctl{min-width:210px}
+.ctl label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;display:flex;justify-content:space-between}
+.ctl label .v{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;margin-top:9px;accent-color:var(--red);height:4px}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+th,td{text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+th{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;border-bottom:1.5px solid var(--ink)}
+td.ind,th.ind{text-align:left;font-weight:600}
+.score-pill{display:inline-block;min-width:52px;text-align:center;padding:3px 8px;border-radius:6px;font-weight:700;font-size:12px}
+.minib{display:inline-block;height:8px;border-radius:4px;vertical-align:middle}
+.notes{font-size:12.5px;color:var(--muted);line-height:1.6} .notes b{color:var(--ink)} .notes p{margin:0 0 9px}
+details{margin-top:10px} summary{cursor:pointer;font-weight:600;color:var(--ink);font-size:13.5px}
+.foot{margin-top:30px;border-top:1px solid var(--line);padding-top:14px;font-size:11.5px;color:var(--soft);line-height:1.6}
+.warn{background:#FBF6EC;border:1px solid #ECDFC2;border-radius:9px;padding:11px 13px;font-size:12px;color:#7a6326;margin-top:12px;line-height:1.5}
+.ratios{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:4px}
+.ratio{border:1px solid var(--line);border-radius:9px;padding:12px 13px}
+.ratio .rl{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.ratio .rv{font-size:21px;font-weight:680;margin-top:5px;font-variant-numeric:tabular-nums}
+.ratio .rd{font-size:11px;color:var(--soft);margin-top:4px;line-height:1.35}
+@media(max-width:980px){.cards{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr !important}.ratios{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="mast">
+    <div class="eyebrow">Variant Perception-style framework &middot; The capital cycle</div>
+    <h1>Commodity Capital Cycle &mdash; Supply Model</h1>
+    <div class="sub">A pure supply signal for commodities. When producers deploy little capital relative to their asset base, future supply is constrained &mdash; so <b>capex/assets, inverted, leads commodity prices</b>. Built from real sector capex and total assets, after VP's "commodity capex cycle leads prices by 12 months."</div>
+    <div class="meta-line">
+      <span><span class="dot" style="background:var(--black)"></span><b>Prices:</b> commodity index, 2-year % change</span>
+      <span><span class="dot" style="background:var(--red)"></span><b>Supply:</b> Capex / Total Assets (inverted, led)</span>
+      <span id="meta-lead"></span>
+      <span><b>Updated:</b> <span id="meta-upd"></span></span>
+    </div>
+  </div>
+
+  <div class="cards" id="cards"></div>
+
+  <div class="panel">
+    <div class="row">
+      <div><h2>Capex cycle leads commodity prices</h2>
+        <div class="desc">Black = commodity prices, 2-year % change (left). Red = producer <b>Capex / Total Assets</b> on an <b>inverted</b> right axis, pushed forward by the lead horizon so it sits ahead of prices (dashed tail = the forward read). Low capex today &rarr; tight supply &rarr; firmer prices later.</div></div>
+      <div class="btns" id="targets">
+        <button data-t="com2y_all" class="active">All commodities</button>
+        <button data-t="com2y_energy">Energy</button>
+      </div>
+    </div>
+    <div class="legend" style="margin:4px 0 2px">
+      <span><i class="lk" style="background:var(--black)"></i>Commodity prices, 2y % chg (LHS)</span>
+      <span><i class="lk" style="background:var(--red)"></i>Capex/Assets, inverted &amp; led (RHS)</span>
+      <span><i class="lk dash"></i>Forward read</span>
+      <span><i class="lk" style="background:#D7D4CC;height:9px"></i>US recession</span>
+    </div>
+    <div class="chartbox"><canvas id="main"></canvas></div>
+    <div class="toolbar">
+      <div class="ctl">
+        <label>Lead horizon <span class="v"><span id="lv">12</span> months</span></label>
+        <input type="range" id="lead" min="0" max="24" value="12"/>
+      </div>
+      <div class="ctl">
+        <label style="display:block;margin-bottom:2px">Range</label>
+        <div class="btns" id="ranges"><button data-y="10">10Y</button><button data-y="15">15Y</button><button data-y="0" class="active">All</button></div>
+      </div>
+      <div style="font-size:11.5px;color:var(--soft);max-width:340px;line-height:1.45">VP cite a 12-month lead; the empirical peak on this data is shown in the cards and the chart below.</div>
+    </div>
+  </div>
+
+  <div class="grid2" style="grid-template-columns:1.05fr .95fr">
+    <div class="panel">
+      <h2>Lead-lag correlation</h2>
+      <div class="desc">Correlation of inverted capex/assets today with commodity prices <i>k</i> months ahead. The tallest bar is the horizon at which the supply signal forecasts best.</div>
+      <div class="chartbox sm"><canvas id="ll"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>The fuller capital-scarcity read</h2>
+      <div class="desc">VP score capital-scarcity from three ratios. Here they are for the US mining &amp; energy sector, latest data. A high composite (scarce) is the bullish supply setup.</div>
+      <div class="ratios" id="ratios"></div>
+      <div style="margin-top:14px"><div class="legend"><span><i class="lk" style="background:var(--teal)"></i>Capital-scarcity composite (&sigma;, 3-ratio)</span></div></div>
+      <div class="chartbox sm" style="height:200px"><canvas id="scar"></canvas></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:18px">
+    <div class="row"><div>
+      <h2>Capital-scarcity by commodity industry &mdash; live company data</h2>
+      <div class="desc">The same three ratios applied to today's listed producers, asset-weighted by fiscal-year filings. Low Capex/Assets, high D&amp;A/Assets and high ROIC each mark a capital-scarce, supply-tight industry.</div>
+    </div></div>
+    <table id="ftab"><thead><tr>
+      <th class="ind">Industry</th><th>Cos.</th><th>Capex/Assets</th><th>D&amp;A/Assets</th><th>ROIC</th><th>Scarcity</th><th style="text-align:left">&larr; abundant &nbsp; scarce &rarr;</th>
+    </tr></thead><tbody></tbody></table>
+    <div class="warn" id="warn"></div>
+  </div>
+
+  <div class="panel" style="margin-top:18px">
+    <h2>Methodology &amp; data</h2>
+    <div class="notes">
+      <p>An independent reconstruction of Variant Perception's commodity capex-cycle chart. The economic logic is theirs; the series are rebuilt from public data.</p>
+      <p><b>The signal.</b> <b>Capex / Total Assets</b> for the US mining &amp; energy sector, built from the Census Bureau's Quarterly Financial Report: capex is reconstructed as the change in net property, plant &amp; equipment plus depreciation charged; total assets are reported directly. The ratio (~3-16% across the cycle) is inverted and read forward, exactly as VP plot it. Under-investment relative to the asset base constrains future supply and is bullish for prices; over-investment does the reverse.</p>
+      <p><b>Prices.</b> A broad commodity price index, 2-year percent change &mdash; the same momentum framing as VP's "Bloomberg Commodity Total Return 2y % Chg." Toggle between the all-commodities and energy indices; energy aligns a touch better since the QFR mining sector is oil &amp; gas-heavy.</p>
+      <p><b>Lead.</b> On this data the signal leads by roughly 18-21 months at peak correlation (r &asymp; +0.4, a little shorter on the energy index), somewhat longer than VP's cited 12 &mdash; the QFR-derived capex flow is noisier than cash capex and carries some impairment effect. The chart defaults to a 12-month lead to match their framing; the empirical peak is shown in the cards and the lead-lag chart, and the lead is adjustable.</p>
+      <details><summary>Sources &amp; honest limitations</summary>
+        <div style="margin-top:8px">
+        <p><b>Sources.</b> Census Quarterly Financial Report, All Mining (total assets, net PP&amp;E, accumulated depreciation, depreciation, income); IMF all-commodities and energy price indices; live company fundamentals (capex, D&amp;A, total assets, EBIT, invested capital) for ~36 listed producers.</p>
+        <p><b>Limitations.</b> (1) QFR "All Mining" covers oil, gas and mining corporations &mdash; the extractive core of the commodity complex, not agriculture or downstream. (2) Capex is reconstructed from the balance sheet rather than taken from cash-flow statements, so it is smoother-but-noisier than VP's Capex+R&amp;D and can be distorted by asset write-downs (e.g. 2016). (3) The composite uses ROA in place of ROIC at the sector level; the company table uses true ROIC. (4) Standardization is full-sample; the price index is spot, used as a total-return proxy. None of this is investment advice.</p>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <div class="foot">
+    Independent reconstruction for research and educational use. Framework after Variant Perception; not affiliated with or endorsed by VP. Built from public data (US Census QFR, IMF, company filings). Indicative only, not investment advice.
+  </div>
+</div>
+
+<script>
+const PAYLOAD={"meta":{"updated":"09 Sep 2026","lastDate":"2026-07","capexLast":"2026-01-01","fundamentalFY":2026,"capexSeriesEnd":"2026-04"},"series":{"dates":["2001-01","2001-02","2001-03","2001-04","2001-05","2001-06","2001-07","2001-08","2001-09","2001-10","2001-11","2001-12","2002-01","2002-02","2002-03","2002-04","2002-05","2002-06","2002-07","2002-08","2002-09","2002-10","2002-11","2002-12","2003-01","2003-02","2003-03","2003-04","2003-05","2003-06","2003-07","2003-08","2003-09","2003-10","2003-11","2003-12","2004-01","2004-02","2004-03","2004-04","2004-05","2004-06","2004-07","2004-08","2004-09","2004-10","2004-11","2004-12","2005-01","2005-02","2005-03","2005-04","2005-05","2005-06","2005-07","2005-08","2005-09","2005-10","2005-11","2005-12","2006-01","2006-02","2006-03","2006-04","2006-05","2006-06","2006-07","2006-08","2006-09","2006-10","2006-11","2006-12","2007-01","2007-02","2007-03","2007-04","2007-05","2007-06","2007-07","2007-08","2007-09","2007-10","2007-11","2007-12","2008-01","2008-02","2008-03","2008-04","2008-05","2008-06","2008-07","2008-08","2008-09","2008-10","2008-11","2008-12","2009-01","2009-02","2009-03","2009-04","2009-05","2009-06","2009-07","2009-08","2009-09","2009-10","2009-11","2009-12","2010-01","2010-02","2010-03","2010-04","2010-05","2010-06","2010-07","2010-08","2010-09","2010-10","2010-11","2010-12","2011-01","2011-02","2011-03","2011-04","2011-05","2011-06","2011-07","2011-08","2011-09","2011-10","2011-11","2011-12","2012-01","2012-02","2012-03","2012-04","2012-05","2012-06","2012-07","2012-08","2012-09","2012-10","2012-11","2012-12","2013-01","2013-02","2013-03","2013-04","2013-05","2013-06","2013-07","2013-08","2013-09","2013-10","2013-11","2013-12","2014-01","2014-02","2014-03","2014-04","2014-05","2014-06","2014-07","2014-08","2014-09","2014-10","2014-11","2014-12","2015-01","2015-02","2015-03","2015-04","2015-05","2015-06","2015-07","2015-08","2015-09","2015-10","2015-11","2015-12","2016-01","2016-02","2016-03","2016-04","2016-05","2016-06","2016-07","2016-08","2016-09","2016-10","2016-11","2016-12","2017-01","2017-02","2017-03","2017-04","2017-05","2017-06","2017-07","2017-08","2017-09","2017-10","2017-11","2017-12","2018-01","2018-02","2018-03","2018-04","2018-05","2018-06","2018-07","2018-08","2018-09","2018-10","2018-11","2018-12","2019-01","2019-02","2019-03","2019-04","2019-05","2019-06","2019-07","2019-08","2019-09","2019-10","2019-11","2019-12","2020-01","2020-02","2020-03","2020-04","2020-05","2020-06","2020-07","2020-08","2020-09","2020-10","2020-11","2020-12","2021-01","2021-02","2021-03","2021-04","2021-05","2021-06","2021-07","2021-08","2021-09","2021-10","2021-11","2021-12","2022-01","2022-02","2022-03","2022-04","2022-05","2022-06","2022-07","2022-08","2022-09","2022-10","2022-11","2022-12","2023-01","2023-02","2023-03","2023-04","2023-05","2023-06","2023-07","2023-08","2023-09","2023-10","2023-11","2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07"],"com2y_all":[45.7125,45.2077,36.7912,30.0175,28.5501,26.604,17.5069,12.7334,4.1462,-3.3651,-9.5751,-11.221,-12.6971,-14.8163,-7.7213,-1.6666,-6.0246,-10.5578,-5.9007,-7.3238,-7.569,-4.7221,-9.5919,-4.6574,1.7579,14.7315,10.9526,3.83,5.2044,10.1047,13.1053,14.623,18.694,33.2518,39.7785,46.8948,50.3797,46.913,39.6157,37.2776,42.3974,42.5186,41.2349,42.6162,36.8008,43.9825,44.6271,34.4392,31.2219,24.4933,43.8051,52.1989,45.4861,48.3409,54.3904,60.8035,66.9101,58.5713,49.9863,50.5204,47.3033,45.4765,41.7622,50.9514,50.3596,49.3357,52.3119,51.0878,39.3334,28.0246,35.338,39.7139,29.7251,33.7127,26.4422,34.2143,38.1654,33.0445,32.5689,21.1944,22.4093,30.3217,46.0381,39.2568,43.234,52.1212,60.0402,53.8065,58.7924,70.1571,65.2974,47.2599,46.6783,21.8021,0.7904,-11.7614,-5.7971,-13.6692,-15.6367,-18.5966,-11.833,-5.1659,-10.2457,-2.2033,-9.5756,-9.194,-10.9024,-9.2598,-9.4128,-15.3956,-17.3176,-16.009,-26.1672,-30.8679,-31.3708,-21.2191,-12.4136,12.8643,37.3557,63.1616,65.0675,77.08,83.1055,88.7885,67.2372,53.4416,61.5238,49.1762,51.6996,38.0868,34.4596,29.34,26.1845,33.2051,31.1803,22.2914,22.4468,16.8292,20.8275,20.9623,19.7955,12.508,7.6449,2.2928,0.9045,-1.7808,-7.3405,-13.6274,-10.7809,-11.288,-11.663,-7.9809,-7.059,-5.417,-7.4945,-3.6108,-6.1864,-6.9175,-9.1688,-6.8494,-2.2636,4.6288,-1.0221,-7.0616,-10.8672,-14.8779,-17.7248,-25.8977,-34.469,-33.2341,-33.8256,-31.7191,-29.1656,-29.4682,-34.1283,-39.2949,-39.3339,-38.303,-41.2812,-45.8369,-48.4902,-48.6277,-44.5114,-43.0182,-39.998,-38.5178,-37.6256,-35.2341,-33.0882,-26.7643,-24.1272,-11.4911,1.4532,-0.727,-2.1797,-3.0321,-7.8035,-8.6681,-1.0353,8.5099,11.9773,13.2524,25.4484,34.7456,50.6192,45.2618,34.7684,32.147,31.7279,27.1836,26.2921,23.6202,27.6615,24.4359,15.0669,3.9684,1.1462,2.0738,7.7148,10.5065,9.8598,8.6904,8.4818,0.8898,-0.0148,-2.5303,-3.3577,-2.2138,-7.4858,-12.8254,-26.1078,-33.5961,-30.9566,-24.1315,-20.769,-14.777,-17.7446,-16.2511,-5.1426,8.0627,17.0432,16.1827,18.1305,18.2813,29.7049,39.9849,40.4197,45.6652,50.4172,70.019,57.2551,56.5001,61.7944,84.7331,157.4435,168.4052,146.7457,131.9034,123.0814,122.6326,103.0802,72.0247,66.6853,55.1725,33.3393,26.5308,19.3446,17.5843,1.2613,-4.1822,-4.2105,-1.1716,-1.7258,-12.3231,-9.8281,-14.5483,-17.1227,-22.0433,-32.0185,-25.3585,-25.4732,-28.0061,-27.6063,-32.1496,-26.6886,-12.9808,-13.4428,-14.223,-5.3332,-1.3178,-0.3856,-4.6875,2.5773,7.8719,4.9846,1.2842,-0.6846,-0.0523,2.141,7.0483,13.2327,16.1519,34.1566,25.7599,27.15,16.7161,16.3021],"com2y_energy":[153.0734,144.0257,103.623,79.8352,74.3337,65.2468,36.8126,28.2295,13.4821,1.0,-13.2062,-16.2679,-20.5546,-23.0035,-10.9356,2.9384,-6.8826,-18.7455,-13.0973,-16.5006,-17.3801,-15.6522,-23.7262,-13.4763,-3.5365,18.7924,11.7365,-3.0888,-0.1909,7.6766,16.4172,17.3844,14.491,36.3862,51.5056,66.3177,73.1487,63.8198,46.2189,41.0589,52.5793,56.3301,57.7664,64.0023,51.7569,68.939,68.5036,43.523,37.1399,22.0968,55.0897,78.2277,64.2298,71.7878,82.641,96.328,123.3291,109.596,89.3636,85.837,77.9462,74.3161,69.6029,79.9983,63.9002,67.2208,67.5015,59.6446,40.0683,19.6215,32.6949,42.3236,23.6315,30.6868,18.6479,24.221,31.7725,23.9996,22.8172,8.4861,8.8273,19.1179,44.4053,35.0815,39.7791,51.4621,60.7692,57.9683,76.2969,90.2814,85.0809,60.1829,65.5738,34.4082,3.8421,-16.6972,-6.9294,-18.8271,-19.8615,-24.0019,-15.0501,-5.7564,-15.0205,-5.7867,-15.0835,-14.3637,-19.4439,-18.1334,-16.2163,-22.0555,-25.2333,-26.714,-39.2092,-43.5217,-44.6799,-36.0434,-28.6865,-3.616,25.4524,63.5223,66.6418,83.4829,96.7638,110.3348,78.2258,54.4394,68.4768,47.8871,54.3388,40.667,40.0647,36.9351,31.4666,40.6412,42.0425,31.624,32.3427,18.826,24.9496,32.03,32.9264,23.0168,16.8808,9.964,8.4608,6.8139,-3.9374,-12.5934,-8.3786,-7.588,-6.7144,0.6805,1.4158,0.0772,-4.4519,0.1811,-2.9603,-3.6775,-9.6537,-6.3682,1.1627,14.5979,5.4379,-4.698,-8.5193,-14.3348,-19.4593,-33.0233,-46.147,-42.0734,-42.8815,-40.4399,-37.159,-38.5554,-45.4756,-52.631,-53.115,-52.216,-54.7662,-61.0832,-65.8922,-66.6964,-61.4149,-59.5924,-55.7706,-54.3273,-54.8004,-52.236,-49.9669,-39.8216,-38.864,-16.9472,4.7448,-6.0082,-9.7696,-8.6594,-16.7447,-19.567,-9.4899,7.6875,15.1774,19.3076,39.0054,59.1239,96.8337,89.2585,68.0044,63.9833,60.5167,52.939,61.6086,57.8387,64.9622,49.4761,36.5153,8.1426,3.9203,7.6185,18.4524,19.6712,20.2694,13.1313,12.9955,-0.413,-2.4967,-7.7952,-9.3304,-8.7259,-17.4532,-25.7655,-50.4392,-63.1709,-58.2491,-49.5036,-47.4586,-42.8642,-47.1063,-44.6258,-31.8473,-10.7008,4.222,1.8323,3.6469,0.3608,12.2723,39.991,44.2348,56.9141,73.8678,114.0791,84.6593,83.0536,91.3536,137.9448,354.5346,437.7177,350.9164,298.2199,297.852,303.7579,261.6193,172.3804,154.5802,118.1561,61.2702,46.5285,30.8764,34.3415,9.4906,-2.968,-3.5141,2.4022,-3.9114,-20.888,-19.4674,-27.0039,-28.0529,-33.3846,-45.8034,-37.2676,-40.3672,-43.3012,-45.9194,-51.7271,-48.3739,-31.8769,-30.9573,-31.3622,-15.5191,-9.2121,-7.1282,-17.1071,-8.8655,0.7417,-5.6524,-15.9233,-22.8278,-25.5192,-19.5337,-15.8877,-11.521,-8.0955,34.7367,21.6684,26.8505,6.8564,6.8676],"capex_assets":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,6.4775,6.3351,6.1927,6.0503,6.2599,6.4694,6.679,7.2428,7.8066,8.3704,8.8176,9.2647,9.7118,9.77,9.8281,9.8863,10.4331,10.9799,11.5267,11.8282,12.1297,12.4313,12.899,13.3666,13.8343,13.9981,14.1619,14.3257,14.2518,14.1779,14.104,13.9546,13.8051,13.6556,13.4694,13.2832,13.097,13.1095,13.122,13.1345,13.4657,13.797,14.1282,14.4532,14.7783,15.1034,15.4892,15.875,16.2608,16.7026,17.1443,17.586,18.0583,18.5306,19.003,19.5037,20.0045,20.5053,20.7324,20.9595,21.1866,20.9233,20.6601,20.3968,19.8785,19.3602,18.8418,18.2705,17.6992,17.1278,16.8242,16.5205,16.2168,16.5235,16.8302,17.1369,16.7931,16.4492,16.1054,15.139,14.1727,13.2063,11.7779,10.3494,8.921,7.4929,6.0649,4.6369,4.2367,3.8365,3.4363,3.6616,3.887,4.1124,4.373,4.6336,4.8942,5.0188,5.1435,5.2682,5.2656,5.2631,5.2606,5.9407,6.6209,7.3011,8.3769,9.4527,10.5285,11.3033,12.0782,12.853,13.7291,14.6052,15.4813,15.8667,16.2521,16.6375,17.1612,17.6849,18.2085,18.4286,18.6486,18.8686,18.5123,18.1561,17.7998,17.2243,16.6489,16.0735,14.9572,13.8409,12.7246,11.9727,11.2207,10.4688,10.1632,9.8575,9.5519,9.8546,10.1574,10.4601,11.074,11.6878,12.3017,12.615,12.9283,13.2416,13.1498,13.0579,12.966,12.3119,11.6578,11.0037,9.8545,8.7053,7.5561,6.0774,4.5987,3.12,2.08,1.04,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.423,0.846,1.269,2.882,4.4951,6.1081,6.9927,7.8772,8.7617,9.183,9.6042,10.0254,10.0556,10.0858,10.116,9.9574,9.7988,9.6402,9.6465,9.6529,9.6592,9.6822,9.7053,9.7283,9.9352,10.142,10.3488,10.4233,10.4977,10.5721,10.8665,11.1609,11.4553,11.3999,11.3445,11.2891,10.416,9.543,8.67,7.1117,5.5533,3.995,2.6633,1.3317,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.5377,1.0753,1.613,3.0721,4.5312,5.9903,7.1989,8.4076,9.6162,10.4643,11.3125,12.1606,12.4134,12.6662,12.9189,12.9491,12.9793,13.0095,13.0504,13.0913,13.1322,13.2053,13.2783,13.3513,13.4586,13.5658,13.673,13.4314,13.1899,12.9483,12.5646,12.1808,11.7971,11.079,10.3609,9.6428,9.7242,9.8056,9.887,10.1786,10.4702,10.7618,11.4728,12.1839,12.8949,13.431,13.9671,14.5031,14.2149,13.9267,13.6385,13.09,12.5415,11.9929,10.9181,9.8432,8.7684,8.4643,8.1602,7.856,null,null,null],"da_assets":[null,null,null,null,null,null,5.6683,5.8632,6.0581,6.2529,6.2567,6.2605,6.2643,6.2068,6.1493,6.0918,6.0452,5.9986,5.952,5.9193,5.8866,5.8539,5.773,5.6921,5.6112,5.6213,5.6313,5.6414,5.6688,5.6962,5.7236,5.6748,5.626,5.5772,5.5049,5.4325,5.3601,5.3847,5.4093,5.4339,5.4335,5.433,5.4325,5.4331,5.4337,5.4343,5.4246,5.4149,5.4052,5.3915,5.3778,5.364,5.3163,5.2685,5.2207,5.1292,5.0377,4.9462,4.9951,5.044,5.0929,5.0944,5.0959,5.0974,5.0764,5.0554,5.0343,5.0494,5.0644,5.0794,5.1516,5.2237,5.2958,5.361,5.4262,5.4914,5.5621,5.6329,5.7036,5.7116,5.7196,5.7276,5.753,5.7784,5.8038,5.779,5.7542,5.7294,5.6871,5.6448,5.6025,5.7252,5.848,5.9707,6.1038,6.2369,6.3701,6.3197,6.2693,6.2189,6.2029,6.1869,6.1709,6.1093,6.0478,5.9862,5.9195,5.8528,5.7861,5.8492,5.9123,5.9753,5.9033,5.8312,5.7592,5.666,5.5728,5.4796,5.4412,5.4027,5.3642,5.3122,5.2601,5.208,5.1546,5.1012,5.0478,5.0545,5.0612,5.0679,5.1053,5.1426,5.18,5.1321,5.0842,5.0363,5.134,5.2318,5.3295,5.4313,5.5331,5.6349,5.6883,5.7417,5.7951,5.8491,5.9031,5.9571,5.9651,5.9731,5.9811,5.9069,5.8327,5.7585,5.7639,5.7694,5.7748,5.8361,5.8973,5.9586,5.9922,6.0257,6.0593,6.0799,6.1004,6.121,6.285,6.449,6.613,6.7436,6.8743,7.0049,7.1655,7.3261,7.4866,7.6214,7.7561,7.8908,7.8671,7.8434,7.8196,7.7792,7.7388,7.6984,7.5964,7.4944,7.3925,7.2849,7.1774,7.0699,6.9945,6.919,6.8436,6.8113,6.7791,6.7468,6.7822,6.8176,6.8531,6.8495,6.846,6.8425,6.8352,6.8279,6.8207,6.8126,6.8045,6.7964,6.8104,6.8243,6.8383,6.883,6.9277,6.9725,6.9941,7.0158,7.0375,7.0842,7.131,7.1777,7.0572,6.9367,6.8162,6.9325,7.0489,7.1652,7.4742,7.7832,8.0922,8.164,8.2358,8.3077,8.2452,8.1828,8.1204,7.961,7.8016,7.6422,7.4195,7.1967,6.9739,6.9631,6.9522,6.9413,6.8312,6.7211,6.6109,6.5091,6.4073,6.3055,6.2948,6.2841,6.2733,6.2349,6.1965,6.1581,6.1693,6.1806,6.1918,6.1994,6.207,6.2147,6.2609,6.3071,6.3533,6.4024,6.4516,6.5008,6.5563,6.6119,6.6674,6.6956,6.7239,6.7521,6.7957,6.8392,6.8828,6.9819,7.081,7.18,7.0744,6.9688,6.8632,6.8384,6.8135,6.7887,6.8679,6.947,7.0261,7.1002,7.1742,7.2482,7.3335,7.4187,7.504,7.5037,7.5034,7.5032,7.4479,7.3927,7.3375,7.2512,7.1649,7.0785,null,null,null],"roa":[null,null,null,null,null,null,9.4976,9.1913,8.885,8.5788,7.595,6.6112,5.6274,4.998,4.3687,3.7394,3.4703,3.2011,2.932,3.0869,3.2418,3.3967,3.7814,4.1661,4.5509,4.7622,4.9736,5.185,5.4077,5.6304,5.8532,5.8476,5.842,5.8365,5.77,5.7036,5.6371,5.7969,5.9567,6.1164,6.2692,6.4219,6.5747,6.8938,7.2129,7.532,7.7096,7.8872,8.0647,8.2727,8.4807,8.6887,8.9739,9.259,9.5442,9.8729,10.2017,10.5304,10.945,11.3595,11.774,11.8534,11.9328,12.0123,11.9334,11.8546,11.7757,11.3014,10.8271,10.3528,10.0663,9.7797,9.4931,9.3847,9.2763,9.1678,8.9636,8.7593,8.555,8.4689,8.3829,8.2968,8.4865,8.6762,8.8658,9.0743,9.2828,9.4913,9.7404,9.9894,10.2384,9.9815,9.7245,9.4675,9.0015,8.5355,8.0695,7.2467,6.4238,5.6009,4.9165,4.2321,3.5477,3.6986,3.8495,4.0004,4.2832,4.566,4.8488,5.0651,5.2814,5.4977,5.5103,5.5229,5.5355,5.4316,5.3276,5.2237,5.2122,5.2007,5.1891,5.3919,5.5946,5.7973,5.9509,6.1045,6.2581,6.301,6.3438,6.3867,6.3146,6.2425,6.1704,5.7514,5.3325,4.9136,4.7456,4.5776,4.4097,4.372,4.3342,4.2965,4.2815,4.2665,4.2515,4.4126,4.5737,4.7348,4.8247,4.9146,5.0045,4.9097,4.815,4.7202,4.8316,4.943,5.0544,5.1787,5.3029,5.4271,5.4157,5.4042,5.3927,5.1995,5.0063,4.8131,4.2488,3.6845,3.1202,2.5653,2.0104,1.4555,0.8165,0.1775,-0.4615,-0.9895,-1.5175,-2.0454,-2.2956,-2.5458,-2.7959,-3.0142,-3.2324,-3.4507,-3.4219,-3.3931,-3.3643,-3.1056,-2.8469,-2.5882,-2.0805,-1.5728,-1.065,-0.7215,-0.378,-0.0344,0.2379,0.5102,0.7825,1.0901,1.3977,1.7053,2.0378,2.3703,2.7027,3.0984,3.4941,3.8897,4.3236,4.7575,5.1914,5.3883,5.5852,5.782,5.6625,5.5429,5.4233,5.2485,5.0737,4.8989,4.4779,4.0569,3.6358,3.4633,3.2908,3.1183,2.8867,2.6551,2.4236,1.7294,1.0352,0.341,0.0371,-0.2668,-0.5707,-0.8316,-1.0925,-1.3534,-0.8657,-0.3779,0.1098,1.1888,2.2679,3.3469,4.3526,5.3584,6.3641,7.5696,8.7751,9.9806,11.1235,12.2665,13.4094,14.8824,16.3554,17.8283,18.7114,19.5944,20.4775,20.4134,20.3493,20.2852,19.7337,19.1822,18.6307,17.2291,15.8276,14.4261,13.4573,12.4885,11.5197,10.9879,10.456,9.9241,9.5848,9.2456,8.9063,8.906,8.9058,8.9055,8.4656,8.0256,7.5856,7.2636,6.9416,6.6196,6.7121,6.8047,6.8972,6.857,6.8167,6.7764,6.7931,6.8099,6.8266,6.8176,6.8086,6.7996,6.9067,7.0137,7.1208,7.5328,7.9448,8.3568,null,null,null],"scarcity":[null,null,null,null,null,null,0.0206,0.1975,0.3743,0.5511,0.3287,0.1062,-0.1163,-0.3348,-0.5533,0.0059,-0.0563,-0.1186,-0.1809,-0.2122,-0.2435,-0.2748,-0.3579,-0.4411,-0.5242,-0.5417,-0.5592,-0.5767,-0.5268,-0.4769,-0.427,-0.5409,-0.6547,-0.7686,-0.8796,-0.9907,-1.1017,-1.1175,-1.1334,-1.1492,-1.1475,-1.1459,-1.1442,-1.0849,-1.0255,-0.9662,-0.9274,-0.8887,-0.85,-0.8052,-0.7604,-0.7156,-0.7137,-0.7119,-0.7101,-0.7804,-0.8507,-0.9209,-0.8583,-0.7956,-0.7329,-0.77,-0.807,-0.844,-0.9319,-1.0197,-1.1075,-1.2297,-1.352,-1.4742,-1.5228,-1.5715,-1.6202,-1.6114,-1.6026,-1.5938,-1.5309,-1.4679,-1.405,-1.3436,-1.2821,-1.2207,-1.0951,-0.9695,-0.8439,-0.793,-0.7421,-0.6912,-0.7289,-0.7665,-0.8042,-0.6947,-0.5853,-0.4759,-0.3082,-0.1406,0.027,0.0447,0.0624,0.0802,0.1483,0.2165,0.2846,0.3081,0.3316,0.3551,0.3127,0.2703,0.2278,0.2804,0.333,0.3856,0.3101,0.2347,0.1593,0.0647,-0.0299,-0.1246,-0.248,-0.3715,-0.495,-0.6489,-0.8027,-0.9566,-1.0797,-1.2028,-1.3259,-1.4284,-1.5309,-1.6334,-1.6634,-1.6934,-1.7233,-1.8971,-2.0708,-2.2445,-2.2164,-2.1883,-2.1602,-2.0331,-1.906,-1.7789,-1.6606,-1.5423,-1.4239,-1.2071,-0.9903,-0.7734,-0.6543,-0.5351,-0.416,-0.4534,-0.4908,-0.5282,-0.5461,-0.564,-0.5819,-0.5913,-0.6007,-0.6101,-0.6245,-0.6389,-0.6532,-0.6536,-0.6539,-0.6542,-0.5165,-0.3787,-0.241,-0.0652,0.1105,0.2863,0.5177,0.749,0.9804,1.1495,1.3185,1.4876,1.429,1.3703,1.3117,1.2438,1.176,1.1081,1.0262,0.9442,0.8623,0.811,0.7598,0.7086,0.6674,0.6263,0.5852,0.3994,0.2137,0.0279,-0.0161,-0.06,-0.104,-0.1148,-0.1256,-0.1363,-0.0953,-0.0542,-0.0131,0.0618,0.1367,0.2116,0.2894,0.3673,0.4451,0.5103,0.5755,0.6406,0.6135,0.5863,0.5592,0.5621,0.565,0.5679,0.3624,0.1569,-0.0486,0.0306,0.1099,0.1891,0.5296,0.8701,1.2106,1.3687,1.5268,1.6849,1.7596,1.8344,1.9092,1.734,1.5588,1.3836,1.27,1.1565,1.0429,1.1999,1.3569,1.5139,1.5051,1.4962,1.4874,1.3957,1.304,1.2122,1.2208,1.2294,1.238,1.3212,1.4045,1.4877,1.6001,1.7125,1.8249,1.8176,1.8102,1.8028,1.7517,1.7005,1.6493,1.4655,1.2817,1.0979,0.9816,0.8654,0.7492,0.7228,0.6965,0.6701,0.705,0.74,0.7749,0.9529,1.1309,1.3088,1.1409,0.973,0.8051,0.6963,0.5874,0.4786,0.4667,0.4549,0.443,0.4293,0.4155,0.4018,0.5144,0.6269,0.7394,0.8097,0.88,0.9502,1.0608,1.1714,1.2819,1.3121,1.3423,1.3725,null,null,null]},"fundamentals":[{"industry":"Energy Equip & Services","n":8,"capexToAssets":0.0376,"daToAssets":0.0432,"roic":0.0716,"scarcity":0.008},{"industry":"Metals & Mining","n":13,"capexToAssets":0.0733,"daToAssets":0.0446,"roic":0.1603,"scarcity":0.036},{"industry":"Oil & Gas","n":14,"capexToAssets":0.067,"daToAssets":0.062,"roic":0.0971,"scarcity":0.041}],"recessions":[["2001-03-01","2001-11-01"],["2007-12-01","2009-06-01"],["2020-02-01","2020-04-01"]]};
+const S=PAYLOAD.series, D=S.dates, N=D.length;
+const C={ink:"#16181D",red:"#C8102E",black:"#16181D",supply:"#B07B22",teal:"#1F5F7A",
+         grid:"#EDEAE1",muted:"#74726B",soft:"#9A978E"};
+const isNum=v=>v!==null&&v!==undefined&&!isNaN(v);
+function pearson(x,y){const xs=[],ys=[];
+  for(let i=0;i<x.length;i++){if(isNum(x[i])&&isNum(y[i])){xs.push(x[i]);ys.push(y[i]);}}
+  const n=xs.length; if(n<24)return null;
+  const mx=xs.reduce((a,b)=>a+b,0)/n,my=ys.reduce((a,b)=>a+b,0)/n;
+  let sxy=0,sxx=0,syy=0;
+  for(let i=0;i<n;i++){const dx=xs[i]-mx,dy=ys[i]-my;sxy+=dx*dy;sxx+=dx*dx;syy+=dy*dy;}
+  return sxy/(Math.sqrt(sxx*syy)||1);}
+function lastNum(a){for(let i=a.length-1;i>=0;i--)if(isNum(a[i]))return a[i];return null;}
+function lastIdx(a){for(let i=a.length-1;i>=0;i--)if(isNum(a[i]))return i;return -1;}
+function eom(dstr,k){const d=new Date(dstr+"T00:00:00");return new Date(d.getFullYear(),d.getMonth()+k+1,0).toISOString().slice(0,10);}
+
+let st={lead:12,target:"com2y_all",years:0};
+let currentLabels=D.slice();
+const futureLabels=[]; for(let k=1;k<=24;k++)futureLabels.push(eom(D[N-1],k));
+
+function bandsPlugin(){return {id:"bands",beforeDraw(c){
+  const {ctx,chartArea:a,scales:{x}}=c; if(!a)return; ctx.save();
+  PAYLOAD.recessions.forEach(([s,e])=>{
+    let i0=currentLabels.indexOf(s); if(i0<0)i0=currentLabels.findIndex(d=>d>=s);
+    let i1=currentLabels.indexOf(e); if(i1<0)i1=currentLabels.findIndex(d=>d>=e); if(i1<0)i1=N-1;
+    if(i0<0)return; const x0=x.getPixelForValue(i0),x1=x.getPixelForValue(i1);
+    ctx.fillStyle="rgba(120,116,104,.13)"; ctx.fillRect(x0,a.top,Math.max(2,x1-x0),a.bottom-a.top);});
+  const fs=N; if(fs<currentLabels.length){const xf=x.getPixelForValue(fs);
+    ctx.fillStyle="rgba(200,16,46,.05)"; ctx.fillRect(xf,a.top,a.right-xf,a.bottom-a.top);}
+  ctx.restore();}};}
+function zeroLine(id){return {id:"z"+id,afterDraw(c){const s=c.scales[id];if(!s)return;const a=c.chartArea;
+  const y=s.getPixelForValue(0); if(isNaN(y)||y<a.top||y>a.bottom)return;
+  c.ctx.save();c.ctx.strokeStyle="rgba(20,24,29,.22)";c.ctx.lineWidth=1;c.ctx.setLineDash([3,3]);
+  c.ctx.beginPath();c.ctx.moveTo(a.left,y);c.ctx.lineTo(a.right,y);c.ctx.stroke();c.ctx.restore();}};}
+
+let mainChart,llChart,scarChart;
+function buildMain(){
+  mainChart=new Chart(document.getElementById("main"),{type:"line",
+    data:{labels:[],datasets:[
+      {label:"Commodity 2y%chg",yAxisID:"yL",data:[],borderColor:C.black,borderWidth:1.8,pointRadius:0,tension:.15,spanGaps:true,order:3},
+      {label:"Capex/Assets (led)",yAxisID:"yR",data:[],borderColor:C.red,borderWidth:2.2,pointRadius:0,tension:.25,spanGaps:false,order:1},
+      {label:"Capex/Assets (fwd)",yAxisID:"yR",data:[],borderColor:C.red,borderWidth:2.2,borderDash:[5,4],pointRadius:0,tension:.25,spanGaps:false,order:2},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},animation:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        title:it=>currentLabels[it[0].dataIndex],
+        label:it=>it.dataset.label.startsWith("Commodity")?" Prices 2y: "+(it.raw==null?"–":it.raw.toFixed(1)+"%"):" Capex/Assets: "+(it.raw==null?"–":it.raw.toFixed(1)+"%")}}},
+      scales:{x:{type:"category",grid:{display:false},ticks:{callback:(v,i)=>{const d=currentLabels[i]||"";return d.slice(5,7)==="01"?d.slice(0,4):"";},maxRotation:0,autoSkip:false,font:{size:11},color:C.soft}},
+        yL:{position:"left",grid:{color:C.grid},title:{display:true,text:"Commodity prices, 2y % change",color:C.muted,font:{size:11}},ticks:{color:C.muted,font:{size:11},callback:v=>v+"%"}},
+        yR:{position:"right",reverse:true,grid:{display:false},title:{display:true,text:"Capex / Assets (inverted, %)",color:C.red,font:{size:11}},ticks:{color:"#B8546A",font:{size:11},callback:v=>v+"%"}}}},
+    plugins:[bandsPlugin(),zeroLine("yL")]});
+}
+function buildLL(){
+  llChart=new Chart(document.getElementById("ll"),{type:"bar",
+    data:{labels:[...Array(25).keys()],datasets:[{data:[],backgroundColor:[],borderRadius:3,barPercentage:.82}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>"Lead "+i[0].label+"m",label:it=>" r = "+(it.raw==null?"–":it.raw.toFixed(2))}}},
+      scales:{x:{grid:{display:false},title:{display:true,text:"months ahead",color:C.muted,font:{size:11}},ticks:{color:C.soft,font:{size:10},callback:(v,i)=>i%3===0?i:""}},
+        y:{grid:{color:C.grid},ticks:{color:C.muted,font:{size:10}},suggestedMin:-0.6,suggestedMax:0.5}}}});
+}
+function buildScar(){
+  scarChart=new Chart(document.getElementById("scar"),{type:"line",
+    data:{labels:D,datasets:[{label:"Scarcity",data:S.scarcity,borderColor:C.teal,borderWidth:1.8,pointRadius:0,tension:.2,spanGaps:true,
+      fill:true,backgroundColor:"rgba(31,95,122,.07)"}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:"index",intersect:false},
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:it=>D[it[0].dataIndex],label:it=>" "+(it.raw==null?"–":it.raw.toFixed(2)+"σ")}}},
+      scales:{x:{type:"category",grid:{display:false},ticks:{callback:(v,i)=>{const d=D[i]||"";return d.slice(5,7)==="01"&&(+d.slice(0,4))%3===0?d.slice(0,4):"";},maxRotation:0,autoSkip:false,font:{size:10},color:C.soft}},
+        y:{grid:{color:C.grid},ticks:{color:C.muted,font:{size:10}}}}},
+    plugins:[zeroLine("y")]});
+}
+
+function render(){
+  const cap=S.capex_assets, tgt=S[st.target], L=st.lead;
+  currentLabels=D.concat(futureLabels.slice(0,L));
+  const led=[]; for(let i=0;i<currentLabels.length;i++){const k=i-L; led.push((k>=0&&k<N)?cap[k]:null);}
+  const tgtPad=currentLabels.map((_,i)=>i<N?tgt[i]:null);
+  const hist=led.map((v,i)=>i<N?v:null);
+  const fwd=led.map((v,i)=>i>=N-1?v:null);
+  mainChart.data.labels=currentLabels;
+  mainChart.data.datasets[0].data=tgtPad;
+  mainChart.data.datasets[1].data=hist;
+  mainChart.data.datasets[2].data=fwd;
+  // axes
+  const tv=tgtPad.filter(isNum); const mL=Math.ceil(Math.max(...tv.map(Math.abs))/10)*10;
+  mainChart.options.scales.yL.min=-mL; mainChart.options.scales.yL.max=mL;
+  const cv=led.filter(isNum); let cmin=Math.floor(Math.min(...cv)), cmax=Math.ceil(Math.max(...cv));
+  mainChart.options.scales.yR.min=Math.max(0,cmin-1); mainChart.options.scales.yR.max=cmax+1;
+  if(st.years>0){const s=Math.max(0,N-1-st.years*12); mainChart.options.scales.x.min=currentLabels[s]; mainChart.options.scales.x.max=currentLabels[currentLabels.length-1];}
+  else {mainChart.options.scales.x.min=undefined;mainChart.options.scales.x.max=undefined;}
+  mainChart.update();
+
+  // lead-lag: corr(-cap(t), tgt(t+k))
+  const invcap=cap.map(v=>isNum(v)?-v:null);
+  const corrs=[]; for(let k=0;k<=24;k++){const f=tgt.map((_,i)=>tgt[i+k]); corrs.push(pearson(invcap,f));}
+  let peak=0; for(let k=1;k<=24;k++)if((corrs[k]||-9)>(corrs[peak]||-9))peak=k;
+  llChart.data.datasets[0].data=corrs;
+  llChart.data.datasets[0].backgroundColor=corrs.map((_,k)=>k===peak?C.red:(k===L?"#C9A24B":"#D8D4CA"));
+  llChart.update();
+
+  // cards
+  const capNow=lastNum(cap), ci=lastIdx(cap), cap12=(ci>=12)?cap[ci-12]:null;
+  const trend=(isNum(cap12))?(capNow<cap12?["Falling","bull"]:["Rising","bear"]):["","neut"];
+  const scarNow=lastNum(S.scarcity);
+  const scLab=scarNow>0.4?["Scarce","scarce"]:scarNow<-0.4?["Abundant","abund"]:["Balanced","neut"];
+  const tgtNow=lastNum(tgt);
+  const outlook=scarNow>0.4?["Bullish","bull"]:scarNow<-0.4?["Bearish","bear"]:["Neutral","neut"];
+  document.getElementById("cards").innerHTML=[
+    card("Capex / Assets",capNow.toFixed(1)+"%",trend[0]||"level",trend[1],"US mining &amp; energy sector"),
+    card("Capital scarcity",(scarNow>=0?"+":"")+scarNow.toFixed(2)+"σ",scLab[0],scLab[1],"3-ratio composite"),
+    card("Commodity prices 2y",(tgtNow>=0?"+":"")+tgtNow.toFixed(1)+"%","momentum","neut",st.target==="com2y_energy"?"energy index":"all commodities"),
+    card("Peak lead / fit",peak+"m","r = "+(corrs[peak]>=0?"+":"")+corrs[peak].toFixed(2),"neut","best forecast horizon"),
+    card("Supply outlook",outlook[0],"~"+peak+"m ahead",outlook[1],"from capital scarcity"),
+  ].join("");
+  document.getElementById("meta-lead").innerHTML=`<b>Lead:</b> ~${peak} months (r=${corrs[peak]>=0?"+":""}${corrs[peak].toFixed(2)})`;
+}
+function card(lab,val,tag,cls,note){
+  return `<div class="card"><div class="lab">${lab}</div><div class="val">${val}</div><span class="tag ${cls}">${tag}</span><div class="note">${note}</div></div>`;}
+
+// ratios panel
+function buildRatios(){
+  const capNow=lastNum(S.capex_assets), daNow=lastNum(S.da_assets), roaNow=lastNum(S.roa);
+  document.getElementById("ratios").innerHTML=[
+    ratio("Capex / Assets",capNow.toFixed(1)+"%","lower is scarcer &mdash; investment vs asset base"),
+    ratio("D&amp;A / Assets",daNow.toFixed(1)+"%","higher is scarcer &mdash; asset depletion"),
+    ratio("Return on assets",roaNow.toFixed(1)+"%","higher is scarcer &mdash; marginal returns"),
+  ].join("");
+}
+function ratio(l,v,d){return `<div class="ratio"><div class="rl">${l}</div><div class="rv">${v}</div><div class="rd">${d}</div></div>`;}
+
+// company table
+function buildTable(){
+  const rows=PAYLOAD.fundamentals.slice().sort((a,b)=>b.scarcity-a.scarcity);
+  const maxAbs=Math.max(...rows.map(r=>Math.abs(r.scarcity)),0.1);
+  const tb=document.querySelector("#ftab tbody"); tb.innerHTML="";
+  rows.forEach(r=>{const sc=r.scarcity,col=sc>=0?C.supply:C.teal;
+    const pillBg=sc>=0?"#F6EEE0":"#E9EEF2",pillCol=sc>=0?"#9A6A14":"#27617E";
+    const w=Math.abs(sc)/maxAbs*46,left=sc>=0?50:50-w;
+    tb.innerHTML+=`<tr><td class="ind">${r.industry}</td><td>${r.n}</td>
+      <td>${(r.capexToAssets*100).toFixed(1)}%</td><td>${(r.daToAssets*100).toFixed(1)}%</td><td>${(r.roic*100).toFixed(1)}%</td>
+      <td><span class="score-pill" style="background:${pillBg};color:${pillCol}">${sc>=0?"+":""}${sc.toFixed(2)}</span></td>
+      <td style="text-align:left"><div style="position:relative;height:8px;background:#F1EFE8;border-radius:4px;min-width:120px">
+        <div style="position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:#D9D6CD"></div>
+        <div class="minib" style="position:absolute;left:${left}%;width:${w}%;background:${col};top:0"></div></div></td></tr>`;});
+  document.getElementById("warn").innerHTML=`<b>Sector vs companies.</b> The live sector composite (from Census data) reads capital-<i>scarce</i> today &mdash; capex/assets has fallen while depletion and returns stay high. The listed-company table ranks industries relative to each other for FY ${PAYLOAD.meta.fundamentalFY}; all three commodity groups sit near the middle of the broad universe, with oil &amp; gas and energy services marginally scarcer than metals &amp; mining.`;
+}
+
+document.getElementById("meta-upd").textContent=PAYLOAD.meta.updated;
+buildMain();buildLL();buildScar();buildRatios();buildTable();render();
+
+document.getElementById("lead").addEventListener("input",e=>{st.lead=+e.target.value;document.getElementById("lv").textContent=st.lead;render();});
+document.querySelectorAll("#targets button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("#targets button").forEach(x=>x.classList.remove("active"));b.classList.add("active");st.target=b.dataset.t;render();}));
+document.querySelectorAll("#ranges button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("#ranges button").forEach(x=>x.classList.remove("active"));b.classList.add("active");st.years=+b.dataset.y;render();}));
+</script>
+</body>
+</html>
