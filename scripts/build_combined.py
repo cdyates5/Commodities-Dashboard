@@ -1,12 +1,12 @@
 """Assemble the seven dashboards into one published page (site/index.html).
-
+ 
 Each dashboard is fully self-contained, so it is embedded base64 into its own
 isolated iframe. That avoids CSS/JS collisions between independently-styled
 builds and lets each keep its exact validated behaviour.
 """
 import base64, os, datetime as dt
 from common import DASH, SITE, log
-
+ 
 TABS = [
     ("sd", "commodity_supply_demand_model.html", "Supply + Demand",
      "Two-driver model. <b>Supply</b> (the genuine capital cycle) and <b>demand</b> "
@@ -30,7 +30,7 @@ TABS = [
      "Positioning model. Legacy <b>non-commercial</b> (total speculative) net length across the "
      "complex, by basket, with percentile bands."),
 ]
-
+ 
 SHELL = r"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Acheron — Commodity Capital Cycle</title>
@@ -84,8 +84,8 @@ document.querySelectorAll("#seg button").forEach(b=>b.addEventListener("click",(
 document.getElementById("desc").innerHTML=DESC.sd;
 window.addEventListener("resize",()=>Object.values(frames).forEach(autoHeight));
 </script></body></html>"""
-
-
+ 
+ 
 def main():
     os.makedirs(SITE, exist_ok=True)
     b64 = {}
@@ -96,11 +96,14 @@ def main():
             continue
         b64[key] = base64.b64encode(open(p, "rb").read()).decode()
     tabs = [t for t in TABS if t[0] in b64]
+    # NOTE: built with %-formatting rather than f-strings. Backslashes inside an
+    # f-string expression are a SyntaxError before Python 3.12, and CI runs 3.11.
+    active = ' class="active"'
     btns = "\n    ".join(
-        f'<button data-v="{k}"{" class=\"active\"" if i == 0 else ""}>{lab}</button>'
+        '<button data-v="%s"%s>%s</button>' % (k, active if i == 0 else "", lab)
         for i, (k, _, lab, _) in enumerate(tabs))
     ifr = "\n  ".join(
-        f'<iframe id="f-{k}"{" class=\"active\"" if i == 0 else ""} title="{lab}"></iframe>'
+        '<iframe id="f-%s"%s title="%s"></iframe>' % (k, active if i == 0 else "", lab)
         for i, (k, _, lab, _) in enumerate(tabs))
     doc = ",".join(f'{k}:"{b64[k]}"' for k, _, _, _ in tabs)
     desc = ",".join(f'{k}:"{d}"' for k, _, _, d in tabs)
@@ -116,7 +119,8 @@ def main():
         open(os.path.join(SITE, fn), "w", encoding="utf-8").write(
             open(src, encoding="utf-8").read())
     log(f"built site/index.html ({len(out):,} bytes, {len(tabs)} tabs)")
-
-
+ 
+ 
 if __name__ == "__main__":
     main()
+ 
